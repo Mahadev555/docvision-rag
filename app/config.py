@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     gemini_vision_model: str = "gemini-2.5-flash"
     gemini_chat_model: str = "gemini-2.5-flash"
     gemini_embedding_model: str = "gemini-embedding-001"
-    embedding_dimensions: int = 768
+    embedding_dimensions: int = 1536
     gemini_max_retries: int = 4
     gemini_temperature: float = 0.2
 
