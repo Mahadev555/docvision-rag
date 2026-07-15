@@ -1,12 +1,19 @@
 # DocVision RAG
 
-> A Multimodal Document Intelligence & Retrieval Platform that enhances traditional RAG by incorporating visual understanding from diagrams, tables, charts, and images.
+> A Multimodal Document Intelligence & Retrieval Platform that enhances traditional RAG by incorporating visual understanding from diagrams, screenshots, flowcharts and charts embedded in PDFs.
 
 ## Overview
 
-DocVision RAG extracts structured content from PDF documents using **PyMuPDF4LLM**, enriches extracted images with AI-generated descriptions using a multimodal vision model, and indexes the enriched document into a vector database for highly accurate semantic retrieval.
+Traditional RAG ignores everything in a PDF that isn't plain text — diagrams, architecture visuals, flowcharts and screenshots are invisible to it. DocVision fixes that:
 
-Unlike traditional RAG, the system understands both textual and visual information, enabling users to ask questions about architecture diagrams, flowcharts, screenshots, tables, and other embedded visuals.
+1. Parse a PDF into clean Markdown with **PyMuPDF4LLM**, extracting every embedded image along the way.
+2. Upload each image to **Cloudinary** and send it to **Gemini Vision** for a structured, detailed analysis (not just a one-line caption).
+3. Inject that analysis back into the Markdown, exactly where the image originally appeared.
+4. Chunk the enriched Markdown (header-aware, token-bounded, with overlap) and embed it with **gemini-embedding-001**.
+5. Store embeddings in **PostgreSQL + PGVector**.
+6. At chat time, retrieve relevant chunks, generate an answer with **Gemini 2.5 Flash**, and return the answer alongside its source pages and any relevant images.
+
+The result: diagrams and screenshots become searchable, right alongside the text.
 
 ---
 
@@ -14,35 +21,174 @@ Unlike traditional RAG, the system understands both textual and visual informati
 
 ![Architecture](architecture.png)
 
+```
+PDF Upload
+   |
+   v
+PyMuPDF4LLM  ->  Markdown + Extracted Images
+   |
+   v
+For each image: Upload to Cloudinary -> Analyse with Gemini Vision (structured JSON)
+   |
+   v
+Inject rendered analysis back into Markdown (in place)
+   |
+   v
+Markdown-aware chunking (headers, token budget, overlap)
+   |
+   v
+Embed chunks (gemini-embedding-001) -> Store in PGVector
+   |
+   v
+Chat: embed query -> vector search -> Gemini answer -> sources + images
+```
+
 ---
 
 ## Features
 
-- 📄 PDF to Markdown conversion
-- 🖼️ Automatic image extraction
-- 👁️ Vision LLM image understanding
-- 📝 Image description injection into Markdown
-- ✂️ Intelligent Markdown chunking
-- 🔍 Semantic search using vector embeddings
-- 📊 Metadata-aware retrieval
-- 🖼️ Return relevant source images with answers
-- ⚡ FastAPI backend
-- ☁️ Azure AI Search / Vector Database support
+- PDF -> Markdown conversion with full image extraction
+- Structured (not one-line) image understanding via Gemini Vision
+- Image analysis injected back into Markdown in place, tied to page number
+- Markdown-aware chunking that preserves header hierarchy
+- Semantic search over PGVector with cosine similarity
+- Metadata filtering (scope retrieval to specific documents)
+- Chat answers include cited sources (document + page) and relevant images
+- Background processing: upload returns immediately, ingestion runs async
+- Streaming chat responses (SSE)
+- Conversation history persisted across turns
+- Document deletion (cascades chunks/images, cleans up Cloudinary)
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-- PyMuPDF4LLM
-- FastAPI
-- Azure AI Search
-- Azure OpenAI / OpenAI Vision Models
-- Vector Embeddings
-- Python
+| Layer | Choice |
+|---|---|
+| API | FastAPI, Pydantic v2 |
+| Database | PostgreSQL + PGVector, SQLAlchemy 2.0 (async), Alembic |
+| PDF parsing | PyMuPDF4LLM, PyMuPDF |
+| Vision & chat | Google Gemini 2.5 Flash |
+| Embeddings | Google gemini-embedding-001 |
+| Image storage | Cloudinary |
+| Runtime | Python 3.12, Docker / Docker Compose |
 
 ---
 
 ## Repository Structure
-- to be decided
 
+Kept deliberately flat and easy to navigate — no repository-pattern layers or provider abstractions, just routes calling services directly.
 
+```
+app/
+  config.py          # Settings, loaded from .env
+  logger.py           # Logging setup
+  exceptions.py        # AppError + its meaning
+  database.py         # Engine, session, declarative Base
+  constants.py         # Shared enums (DocumentStatus, ChatRole, ...)
+  main.py            # FastAPI app, middleware, error handler, router mounting
+
+  models/            # SQLAlchemy ORM models
+    document.py
+    image.py
+    chunk.py
+    chat.py
+
+  schemas/            # Pydantic request/response models
+    document.py
+    chat.py
+    vision.py         # ImageAnalysis structured schema + markdown renderer
+
+  routes/            # API endpoints
+    documents.py        # upload, list, get, delete
+    chat.py            # RAG chat
+    health.py          # /health
+
+  services/            # All business logic and external integrations
+    document_service.py    # CRUD, upload validation
+    ingestion_service.py    # orchestrates the full pipeline
+    chat_service.py       # retrieval + generation + history
+    pdf_service.py        # PyMuPDF4LLM parsing + analysis injection
+    chunking_service.py     # markdown-aware chunker
+    vision_service.py      # Gemini Vision wrapper
+    embedding_service.py    # Gemini embeddings wrapper
+    llm_service.py        # Gemini chat wrapper
+    storage_service.py     # Cloudinary wrapper
+    vectorstore_service.py   # PGVector similarity search
+
+  utils/
+    retry.py            # async retry decorator
+    tokens.py           # token counting (tiktoken)
+
+alembic/              # DB migrations
+docker/              # Dockerfile + entrypoint
+tests/
+```
+
+---
+
+## Setup
+
+### 1. Configure environment
+
+```bash
+cp .env.example .env
+# fill in GEMINI_API_KEY, CLOUDINARY_* credentials
+```
+
+### 2. Run with Docker Compose (recommended)
+
+```bash
+docker compose up --build
+```
+
+This starts a `pgvector/pgvector` Postgres instance and the API, running migrations automatically on boot. API available at `http://localhost:8000`.
+
+### 3. Or run locally
+
+```bash
+uv venv .venv
+uv pip install -r requirements-dev.txt
+# start Postgres with pgvector yourself, then:
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+---
+
+## API
+
+Interactive docs at `/docs` (Swagger) once running. Summary:
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/api/v1/documents/upload` | Upload a PDF; returns immediately, processes in background |
+| GET | `/api/v1/documents` | List documents (paginated) |
+| GET | `/api/v1/documents/{id}` | Document detail + extracted images |
+| DELETE | `/api/v1/documents/{id}` | Delete a document and all derived data |
+| POST | `/api/v1/chat` | Ask a question (`stream: true` for SSE) |
+| GET | `/api/v1/health` | Liveness/readiness |
+
+### Chat response shape
+
+```json
+{
+  "answer": "...",
+  "conversation_id": "...",
+  "sources": [{ "document": "spec.pdf", "page": 5, "score": 0.83 }],
+  "images": [{ "url": "https://res.cloudinary.com/...", "page": 5, "description": "..." }]
+}
+```
+
+### Document status lifecycle
+
+`queued -> processing -> completed | failed`
+
+---
+
+## Future Improvements
+
+- Hybrid search (vector + keyword/BM25)
+- Queue-backed background processing (Celery/Arq) instead of in-process tasks, for horizontal scaling
+- Per-document access control
+- Table-specific extraction (beyond image-based analysis)
