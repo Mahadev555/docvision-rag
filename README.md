@@ -129,29 +129,62 @@ tests/
 
 ## Setup
 
-### 1. Configure environment
+You need three things before the app can actually process a PDF: a **Gemini API key**, **Cloudinary credentials**, and a **Postgres database with the `vector` extension**. The steps below use [uv](https://github.com/astral-sh/uv) for Python dependency management and [Neon](https://neon.tech) (free tier, pgvector built in) for the database — this exact combination has been run end-to-end and verified working.
+
+### 1. Get your credentials
+
+- **Gemini API key** — https://aistudio.google.com/apikey (free tier available)
+- **Cloudinary** — sign up at https://cloudinary.com/console, then from the Dashboard grab: Cloud Name, API Key, API Secret
+- **Postgres + pgvector** — either:
+  - **Neon** (recommended, no local install): create a project at https://neon.tech, copy the **direct** (non-`-pooler`) connection string from the dashboard
+  - or run Postgres locally via Docker Compose (see step 4 below)
+
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# fill in GEMINI_API_KEY, CLOUDINARY_* credentials
 ```
 
-### 2. Run with Docker Compose (recommended)
+Edit `.env` and fill in:
+```env
+GEMINI_API_KEY=your-gemini-api-key
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
-```bash
-docker compose up --build
+# If using Neon, uncomment and fill this in (note the +asyncpg driver and ssl=require):
+DATABASE_URL=postgresql+asyncpg://user:password@your-neon-host/dbname?ssl=require
 ```
+If `DATABASE_URL` is set, it takes priority over the discrete `POSTGRES_*` fields.
 
-This starts a `pgvector/pgvector` Postgres instance and the API, running migrations automatically on boot. API available at `http://localhost:8000`.
-
-### 3. Or run locally
+### 3. Install dependencies and create the schema
 
 ```bash
 uv venv .venv
-uv pip install -r requirements-dev.txt
-# start Postgres with pgvector yourself, then:
-alembic upgrade head
-uvicorn app.main:app --reload
+uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt   # Windows
+# uv pip install --python .venv/bin/python -r requirements-dev.txt        # macOS/Linux
+
+.venv/Scripts/python.exe -m alembic upgrade head   # Windows
+# .venv/bin/python -m alembic upgrade head          # macOS/Linux
+```
+This creates all 5 tables (`documents`, `chunks`, `images`, `conversations`, `chat_messages`) and enables the `vector` extension.
+
+### 4. Run the app
+
+```bash
+.venv/Scripts/python.exe -m uvicorn app.main:app --reload   # Windows
+# .venv/bin/uvicorn app.main:app --reload                   # macOS/Linux
+```
+API available at `http://localhost:8000`, interactive docs at `http://localhost:8000/docs`. Sanity-check with:
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+### Alternative: Docker Compose (self-hosted Postgres)
+
+If you'd rather not use Neon, `docker-compose.yml` spins up a local `pgvector/pgvector` Postgres container alongside the API, running migrations automatically on boot:
+```bash
+docker compose up --build
 ```
 
 ---
