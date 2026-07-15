@@ -66,7 +66,11 @@ class Settings(BaseSettings):
 
     @property
     def sync_database_url(self) -> str:
-        return self.async_database_url.replace("+asyncpg", "+psycopg")
+        # asyncpg and psycopg use different SSL query-param names/values, so the
+        # driver swap also needs to translate `ssl=require` -> `sslmode=require`.
+        return self.async_database_url.replace("+asyncpg", "+psycopg").replace(
+            "ssl=require", "sslmode=require"
+        )
 
     @property
     def max_upload_size_bytes(self) -> int:
