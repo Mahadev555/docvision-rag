@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { streamChat } from "../api.js";
+
+const SAMPLE_QUESTIONS = [
+  "How many filters does each of the three convolution layers use in the 1D CNN architecture diagram?",
+  "Summarize this document and cite the pages you used.",
+  "What diagrams or charts appear in this document, and what does each one show?",
+  "Extract any numerical results or accuracy metrics mentioned, with their sources.",
+  "What labels or components are shown in the technical diagrams?",
+];
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -65,17 +74,17 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-base-800 px-8 py-4">
-        <h1 className="text-lg font-bold text-white">Chat</h1>
+      <div className="flex items-center justify-between border-b border-slate-200 px-8 py-4">
+        <h1 className="text-lg font-bold text-slate-900">Chat</h1>
         <button
           onClick={newConversation}
-          className="rounded-lg border border-base-700 px-3 py-1.5 text-xs text-slate-400 hover:border-base-600 hover:text-slate-200"
+          className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
         >
           New conversation
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-slate-50/50 px-8 py-6">
         {messages.length === 0 ? (
           <EmptyState onPick={send} />
         ) : (
@@ -87,7 +96,7 @@ export default function ChatPage() {
         )}
       </div>
 
-      <div className="border-t border-base-800 px-8 py-4">
+      <div className="border-t border-slate-200 bg-white px-8 py-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -99,12 +108,12 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask something about your documents..."
-            className="flex-1 rounded-xl border border-base-700 bg-base-900 px-4 py-3 text-sm text-slate-200 outline-none focus:border-accent-500"
+            className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-100"
           />
           <button
             type="submit"
             disabled={streaming || !input.trim()}
-            className="rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 px-5 py-3 text-sm font-semibold text-white shadow-glow disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-accent-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {streaming ? "..." : "Send"}
           </button>
@@ -115,26 +124,21 @@ export default function ChatPage() {
 }
 
 function EmptyState({ onPick }) {
-  const samples = [
-    "What is this document about?",
-    "Summarize the key findings.",
-    "Describe any diagrams or charts in the document.",
-  ];
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent-500/10 text-accent-400">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <div className="mx-auto flex h-full max-w-lg flex-col items-center justify-center text-center">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-accent-100 text-accent-600">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </div>
-      <h2 className="font-semibold text-slate-200">Ask about your documents</h2>
-      <p className="mt-1 text-sm text-slate-500">Answers cite pages and surface relevant diagrams.</p>
-      <div className="mt-6 flex flex-col gap-2 w-full">
-        {samples.map((s) => (
+      <h2 className="font-semibold text-slate-800">Ask about your documents</h2>
+      <p className="mt-1 text-sm text-slate-500">Answers cite pages and surface the diagrams they're drawn from.</p>
+      <div className="mt-6 flex w-full flex-col gap-2">
+        {SAMPLE_QUESTIONS.map((s) => (
           <button
             key={s}
             onClick={() => onPick(s)}
-            className="rounded-lg border border-base-800 bg-base-900 px-4 py-2.5 text-left text-sm text-slate-400 transition-colors hover:border-accent-500/40 hover:text-slate-200"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm text-slate-600 shadow-sm transition-colors hover:border-accent-300 hover:text-slate-900"
           >
             {s}
           </button>
@@ -154,12 +158,21 @@ function MessageBubble({ msg }) {
             isUser
               ? "bg-accent-600 text-white"
               : msg.isError
-                ? "border border-rose-500/30 bg-rose-500/10 text-rose-300"
-                : "border border-base-800 bg-base-900 text-slate-200"
+                ? "border border-rose-200 bg-rose-50 text-rose-700"
+                : "border border-slate-200 bg-white text-slate-800 shadow-sm"
           }`}
         >
-          {msg.content || (msg.pending && <TypingDots />)}
-          {msg.pending && msg.content && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-accent-400 align-middle" />}
+          {msg.content ? (
+            isUser ? (
+              msg.content
+            ) : (
+              <div className="prose prose-sm prose-slate max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-headings:my-2">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
+            )
+          ) : (
+            msg.pending && <TypingDots />
+          )}
         </div>
 
         {msg.sources?.length > 0 && (
@@ -167,7 +180,7 @@ function MessageBubble({ msg }) {
             {msg.sources.map((s, i) => (
               <span
                 key={i}
-                className="rounded-full border border-base-800 bg-base-850 px-2.5 py-1 text-[11px] text-slate-400"
+                className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-500"
                 title={`similarity ${s.score}`}
               >
                 {s.document}
@@ -185,8 +198,11 @@ function MessageBubble({ msg }) {
                 href={img.url}
                 target="_blank"
                 rel="noreferrer"
-                className="group overflow-hidden rounded-lg border border-base-800 bg-base-900"
+                className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
               >
+                <span className="absolute left-1.5 top-1.5 z-10 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                  #{i + 1}
+                </span>
                 <img src={img.url} alt={img.description || "result"} className="h-24 w-full object-cover transition-transform group-hover:scale-105" />
                 <div className="truncate px-2 py-1 text-[10px] text-slate-500">
                   {img.document} · p.{img.page}
@@ -203,9 +219,9 @@ function MessageBubble({ msg }) {
 function TypingDots() {
   return (
     <span className="inline-flex gap-1">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:-0.3s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:-0.15s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
     </span>
   );
 }

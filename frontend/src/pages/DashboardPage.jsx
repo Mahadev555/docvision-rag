@@ -62,7 +62,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl px-8 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <span className="text-xs text-slate-500">{total} document{total === 1 ? "" : "s"}</span>
       </div>
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
         <StatCard label="Chunks" value={stats.chunks} />
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-base-800">
+      <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         {loading && documents.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-500">Loading...</div>
         ) : documents.length === 0 ? (
@@ -81,7 +81,7 @@ export default function DashboardPage() {
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-base-800 bg-base-900 text-xs uppercase tracking-wide text-slate-500">
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3 font-medium">Filename</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Pages</th>
@@ -96,27 +96,27 @@ export default function DashboardPage() {
                 <Fragment key={doc.id}>
                   <tr
                     onClick={() => toggleExpand(doc.id)}
-                    className="cursor-pointer border-b border-base-800 bg-base-950 transition-colors hover:bg-base-900"
+                    className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-200">{doc.filename}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">{doc.filename}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={doc.status} />
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{doc.page_count}</td>
-                    <td className="px-4 py-3 text-slate-400">{doc.image_count}</td>
-                    <td className="px-4 py-3 text-slate-400">{doc.chunk_count}</td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(doc.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-slate-500">{doc.page_count}</td>
+                    <td className="px-4 py-3 text-slate-500">{doc.image_count}</td>
+                    <td className="px-4 py-3 text-slate-500">{doc.chunk_count}</td>
+                    <td className="px-4 py-3 text-slate-400">{new Date(doc.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={(e) => handleDelete(doc.id, e)}
-                        className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-rose-500/10 hover:text-rose-400"
+                        className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                       >
                         Delete
                       </button>
                     </td>
                   </tr>
                   {expandedId === doc.id && (
-                    <tr className="border-b border-base-800 bg-base-900/40">
+                    <tr className="border-b border-slate-100 bg-slate-50/60">
                       <td colSpan={7} className="px-4 py-4">
                         <ExpandedImages doc={expandedDoc} />
                       </td>
@@ -134,8 +134,8 @@ export default function DashboardPage() {
 
 function StatCard({ label, value, accent }) {
   return (
-    <div className="rounded-xl border border-base-800 bg-base-900 p-4">
-      <div className={`text-2xl font-bold ${accent === "emerald" ? "text-emerald-400" : "text-white"}`}>{value}</div>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className={`text-2xl font-bold ${accent === "emerald" ? "text-emerald-600" : "text-slate-900"}`}>{value}</div>
       <div className="mt-0.5 text-xs text-slate-500">{label}</div>
     </div>
   );
@@ -154,12 +154,12 @@ function ExpandedImages({ doc }) {
           href={img.cloudinary_url || undefined}
           target="_blank"
           rel="noreferrer"
-          className="group overflow-hidden rounded-lg border border-base-800 bg-base-950"
+          className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
         >
           {img.cloudinary_url ? (
             <img src={img.cloudinary_url} alt={img.description || "extracted"} className="h-20 w-full object-cover transition-transform group-hover:scale-105" />
           ) : (
-            <div className="flex h-20 w-full items-center justify-center text-[10px] text-slate-600">no preview</div>
+            <div className="flex h-20 w-full items-center justify-center bg-slate-50 text-[10px] text-slate-400">no preview</div>
           )}
           <div className="truncate px-2 py-1 text-[10px] text-slate-500">
             p.{img.page_number} {img.image_type ? `· ${img.image_type}` : ""}
