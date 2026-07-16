@@ -17,9 +17,16 @@ The result: diagrams and screenshots become searchable, right alongside the text
 
 ---
 
+## Demo
+
+![Demo](docs/demo.png)
+Chat answering a question grounded in a diagram, with cited pages and rank-ordered result images.
+
+---
+
 ## Architecture
 
-![Architecture](architecture.png)
+![Architecture](docs/architecture.png)
 
 ```
 PDF Upload
@@ -42,6 +49,19 @@ Embed chunks (gemini-embedding-001) -> Store in PGVector
    v
 Chat: embed query -> vector search -> Gemini answer -> sources + images
 ```
+
+---
+
+## UI Tour
+
+![Upload](docs/upload.png)
+Drag-and-drop PDF upload with live background-processing status.
+
+![Chat](docs/chat.png)
+The chat interface with example RAG questions to get started.
+
+![Dashboard](docs/dashboard.png)
+Document dashboard — status, page/image/chunk counts, and per-document image previews.
 
 ---
 
