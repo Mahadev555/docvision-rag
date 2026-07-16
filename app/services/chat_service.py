@@ -196,7 +196,12 @@ class ChatService:
         if not image_ids:
             return []
 
-        images = (await self._db.scalars(select(Image).where(Image.id.in_(image_ids)))).all()
+        fetched = (await self._db.scalars(select(Image).where(Image.id.in_(image_ids)))).all()
+        # `IN (...)` does not preserve list order, so re-sort by the original
+        # image_ids order, which reflects retrieval rank (best match first).
+        by_id = {image.id: image for image in fetched}
+        images = [by_id[image_id] for image_id in image_ids if image_id in by_id]
+
         results: list[ImageResult] = []
         for image in images:
             if not image.cloudinary_url:
