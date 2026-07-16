@@ -245,3 +245,7 @@ Interactive docs at `/docs` (Swagger) once running. Summary:
 - Queue-backed background processing (Celery/Arq) instead of in-process tasks, for horizontal scaling
 - Per-document access control
 - Table-specific extraction (beyond image-based analysis)
+
+---
+
+Made with 🧠❤️ by Mahadev Manerikar
