@@ -36,7 +36,12 @@ class DocumentService:
             status=DocumentStatus.QUEUED.value,
         )
         self._db.add(document)
-        await self._db.flush()
+        # Commit explicitly (not just flush): the caller schedules a background
+        # ingestion task right after this returns, and FastAPI runs
+        # BackgroundTasks *before* the request's get_db() dependency commits —
+        # so without an explicit commit here, the background task's own
+        # session cannot see this row yet.
+        await self._db.commit()
         logger.info("document created: %s (%s)", document.id, filename)
         return document
 

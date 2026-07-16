@@ -19,7 +19,14 @@ async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency yielding a transactional session."""
+    """FastAPI dependency yielding a transactional session.
+
+    Note: this commit runs as part of the dependency's teardown, which FastAPI
+    executes *after* any ``BackgroundTasks`` scheduled during the request have
+    already run. Code that schedules a background task depending on data just
+    written in this request must commit that data explicitly beforehand —
+    never rely on this commit for background-task visibility.
+    """
     async with async_session_maker() as session:
         try:
             yield session

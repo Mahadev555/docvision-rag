@@ -29,8 +29,8 @@ class Settings(BaseSettings):
 
     # Gemini
     gemini_api_key: str = "changeme"
-    gemini_vision_model: str = "gemini-2.5-flash"
-    gemini_chat_model: str = "gemini-2.5-flash"
+    gemini_vision_model: str = "gemini-3.1-flash-lite"
+    gemini_chat_model: str = "gemini-3.1-flash-lite"
     gemini_embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 1536
     gemini_max_retries: int = 4
