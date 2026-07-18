@@ -1,6 +1,5 @@
-# DocVision RAG
-
-> A Multimodal Document Intelligence & Retrieval Platform that enhances traditional RAG by incorporating visual understanding from diagrams, screenshots, flowcharts and charts embedded in PDFs.
+# DocVision-RAG
+### Vision-Enhanced Multimodal RAG for Intelligent Document Understanding
 
 ## Overview
 
